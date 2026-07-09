@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Strava Segment Rest Planner</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <!-- Lucide Icons (via CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <!-- Header -->
+        <header class="app-header">
+          <div class="logo-container">
+            <div class="logo-icon">
+              <i data-lucide="route" class="orange-glow-icon"></i>
+            </div>
+            <div>
+              <h1>.</h1>
+              <p class="subtitle">Segment Rest Planner</p>
+            </div>
+          </div>
+        </header>
+
+        <!-- Step 1: City Search -->
+        <section class="sidebar-section" id="section-city">
+          <h2 class="section-title"><span class="badge">1</span> Find Your City</h2>
+          <div class="search-box">
+            <div class="input-wrapper">
+              <i data-lucide="search" class="input-icon"></i>
+              <input type="text" id="city-search-input" placeholder="e.g. Somerset West, Stellenbosch..." autocomplete="off" />
+            </div>
+            <button id="city-search-btn" class="btn btn-primary-icon">
+              <i data-lucide="arrow-right"></i>
+            </button>
+
+            <!-- Search Results Dropdown -->
+            <div id="search-results" class="search-results-dropdown hidden"></div>
+          </div>
+
+          <!-- Active City Status -->
+          <div id="city-status" class="status-card hidden">
+            <div class="status-header">
+              <span class="city-name-label" id="loaded-city-name">Stellenbosch</span>
+              <span class="status-pill"><i data-lucide="check-circle-2"></i> Active</span>
+            </div>
+            <div class="status-details">
+              <div><i data-lucide="git-commit"></i> <span id="node-count">0</span> nodes</div>
+              <div><i data-lucide="milestone"></i> <span id="way-count">0</span> roads</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Step 2: Segment Planner -->
+        <section class="sidebar-section disabled" id="section-planner">
+          <h2 class="section-title"><span class="badge">2</span> Mark Strava Segments</h2>
+
+          <!-- Selection State Controls -->
+          <div class="segment-controls">
+            <button id="btn-draw-segment" class="btn btn-action"><i data-lucide="plus"></i> Mark New Segment</button>
+            <div id="draw-instructions" class="draw-instructions-banner hidden">
+              <p><i data-lucide="info"></i> Click on the map to set the <strong>Start</strong> point, then click again to set the <strong>End</strong> point.</p>
+              <div class="draw-actions">
+                <span id="draw-status-text">Waiting for Start...</span>
+                <button id="btn-cancel-draw" class="btn btn-small btn-secondary">Cancel</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Segments List -->
+          <div class="segments-container">
+            <h3 class="container-subtitle">Your Segments</h3>
+            <div id="segments-list" class="segments-list">
+              <div class="empty-state">
+                <i data-lucide="map-pin" class="empty-icon"></i>
+                <p>No segments added yet. Click "Mark New Segment" above to select a section of street on the map.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rest Options -->
+          <div class="rest-settings">
+            <h3 class="container-subtitle">Rest Options</h3>
+            <div class="rest-input-group">
+              <label for="rest-distance">Recovery Easy Ride Distance:</label>
+              <div class="rest-slider-container">
+                <input type="range" id="rest-distance" min="0.2" max="5.0" step="0.1" value="1.0" />
+                <span class="slider-value"><strong id="rest-distance-val">1.0</strong> km</span>
+              </div>
+            </div>
+          </div>
+
+          <button id="btn-generate-route" class="btn btn-primary btn-block"><i data-lucide="sparkles"></i> Generate Rest Route</button>
+        </section>
+
+        <!-- Step 3: Route Results -->
+        <section class="sidebar-section hidden" id="section-results">
+          <h2 class="section-title"><span class="badge">3</span> Planned Route</h2>
+
+          <div class="results-grid">
+            <div class="stat-card">
+              <span class="stat-title">Total Distance</span>
+              <span class="stat-value" id="stat-total-dist">0.0 km</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-title">Segment Efforts</span>
+              <span class="stat-value text-orange" id="stat-segment-dist">0.0 km</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-title">Easy Recovery</span>
+              <span class="stat-value text-blue" id="stat-rest-dist">0.0 km</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-title">Rest Intervals</span>
+              <span class="stat-value" id="stat-rest-count">0</span>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button id="btn-download-gpx" class="btn btn-success btn-block"><i data-lucide="download"></i> Download GPX File</button>
+            <button id="btn-download-svg" class="btn btn-outline btn-block"><i data-lucide="file-image"></i> Download SVG Map</button>
+          </div>
+        </section>
+      </aside>
+
+      <!-- Map Area -->
+      <main class="map-area">
+        <div id="map"></div>
+
+        <!-- Overlay Toast -->
+        <div id="toast" class="toast hidden"></div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay hidden">
+          <div class="spinner-container">
+            <div class="spinner"></div>
+            <p id="loading-text">Loading...</p>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- App JS -->
+    <script src="js/app.js"></script>
+  </body>
+</html>
