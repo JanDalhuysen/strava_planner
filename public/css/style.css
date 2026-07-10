@@ -190,6 +190,37 @@ body {
   flex: 1;
 }
 
+.cached-city-picker {
+  margin-top: 14px;
+}
+
+.cached-city-picker label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.cached-city-picker select {
+  width: 100%;
+  padding: 11px 12px;
+  background: var(--bg-darker);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+}
+
+.cached-city-picker select:focus {
+  border-color: var(--color-strava);
+  box-shadow: 0 0 10px var(--color-strava-glow);
+}
+
 .input-icon {
   position: absolute;
   left: 14px;

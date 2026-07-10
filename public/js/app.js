@@ -39,6 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Bind UI Events
   setupEventListeners();
+  loadCachedCities();
 });
 
 // Initialize Leaflet Map
@@ -66,10 +67,15 @@ function setupEventListeners() {
   const citySearchInput = document.getElementById("city-search-input");
   const citySearchBtn = document.getElementById("city-search-btn");
   const searchResults = document.getElementById("search-results");
+  const cachedCitySelect = document.getElementById("cached-city-select");
 
   citySearchBtn.addEventListener("click", performCitySearch);
   citySearchInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") performCitySearch();
+  });
+  cachedCitySelect.addEventListener("change", () => {
+    const city = cachedCitySelect.selectedOptions[0]?.city;
+    if (city) selectCity(city, true);
   });
 
   document.addEventListener("click", (e) => {
@@ -97,6 +103,39 @@ function setupEventListeners() {
 
   document.getElementById("btn-download-gpx").addEventListener("click", downloadGPX);
   document.getElementById("btn-download-svg").addEventListener("click", downloadSVG);
+}
+
+async function loadCachedCities() {
+  const select = document.getElementById("cached-city-select");
+
+  try {
+    const res = await fetch("/api/cities/cached");
+    if (!res.ok) throw new Error("Could not load saved cities.");
+
+    const cities = await res.json();
+    select.innerHTML = "";
+
+    if (cities.length === 0) {
+      select.innerHTML = '<option value="">No saved cities yet</option>';
+      return;
+    }
+
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Select a saved city...";
+    select.appendChild(placeholder);
+
+    cities.forEach((city) => {
+      const option = document.createElement("option");
+      option.value = city.cityKey;
+      option.textContent = `${city.displayName} (${city.wayCount.toLocaleString()} roads)`;
+      option.city = city;
+      select.appendChild(option);
+    });
+  } catch (error) {
+    select.innerHTML = '<option value="">Saved cities unavailable</option>';
+    console.error("[cities/cached]", error);
+  }
 }
 
 // Show Toast message
@@ -172,17 +211,19 @@ async function performCitySearch() {
 }
 
 // Select a city and request its road network
-async function selectCity(city) {
+async function selectCity(city, fromCache = false) {
   document.getElementById("search-results").classList.add("hidden");
   document.getElementById("city-search-input").value = city.displayName.split(",")[0];
 
   const bbox = city.bbox;
   const cityName = city.displayName.split(",")[0];
 
-  setLoading(true, `Downloading roads for ${cityName}...`);
+  setLoading(true, `${fromCache ? "Loading saved" : "Downloading"} roads for ${cityName}...`);
 
   try {
-    const url = `/api/cities/load?osmType=${city.osmType}&osmId=${city.osmId}&south=${bbox.minLat}&north=${bbox.maxLat}&west=${bbox.minLon}&east=${bbox.maxLon}&cityName=${encodeURIComponent(cityName)}`;
+    const url = fromCache
+      ? `/api/cities/${encodeURIComponent(city.cityKey)}`
+      : `/api/cities/load?osmType=${city.osmType}&osmId=${city.osmId}&south=${bbox.minLat}&north=${bbox.maxLat}&west=${bbox.minLon}&east=${bbox.maxLon}&cityName=${encodeURIComponent(cityName)}`;
     const res = await fetch(url);
     if (!res.ok) {
       const errData = await res.json();
@@ -227,7 +268,7 @@ async function selectCity(city) {
     updateSegmentsList();
 
     setLoading(false);
-    showToast(`Loaded ${data.ways.length} roads! You can now mark your segments.`);
+    showToast(`${fromCache ? "Loaded saved" : "Loaded"} ${data.ways.length} roads! You can now mark your segments.`);
   } catch (error) {
     console.error("[cities/load]", error);
     setLoading(false);
