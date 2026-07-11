@@ -1,11 +1,11 @@
 const fs = require("fs");
 const path = require("path");
 
-const USER_AGENT = "StravaSegmentPlanner/1.0 (contact: cyclist-planner@example.com)";
+const USER_AGENT = "StravaSegmentPlanner/1.0 (https://github.com/JanDalhuysen/strava_planner)";
 
 const OVERPASS_MIRRORS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.openstreetmap.ru/api/interpreter"];
-const OVERPASS_TIMEOUT_MS = 25000;
-const QUERY_TIMEOUT = 180;
+const OVERPASS_TIMEOUT_MS = 25000 * 2;
+const QUERY_TIMEOUT = 180 * 2;
 
 const HIGHWAY_TYPES =
   "motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|" +
@@ -85,6 +85,7 @@ out geom;
         body: `data=${encodeURIComponent(overpassQuery)}`,
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
           "User-Agent": USER_AGENT,
         },
         signal: controller.signal,
